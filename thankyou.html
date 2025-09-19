@@ -1,0 +1,98 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Problem Registered</title>
+  <style>
+    body {
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background: #0d47a1; /* Solid Blue Background */
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .container {
+      width: 85%;
+      max-width: 1000px;
+      background: #ffffff;
+      padding: 60px;
+      border-radius: 20px;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3);
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      color: #0d47a1;
+      margin-bottom: 30px;
+    }
+
+    p {
+      font-size: 1.3rem;
+      color: #333;
+      margin: 18px 0;
+    }
+
+    .highlight {
+      font-weight: bold;
+      color: #1565c0;
+      background: #e3f2fd;
+      padding: 12px 20px;
+      border-radius: 12px;
+      display: inline-block;
+      margin-top: 15px;
+    }
+
+    .back-btn {
+      margin-top: 40px;
+      padding: 14px 28px;
+      background: #0d47a1;
+      color: white;
+      font-size: 1.2rem;
+      font-weight: bold;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    .back-btn:hover {
+      background: #1565c0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>✅ Your Problem is Registered!</h1>
+    <p>Thank you for reporting the sanitation issue.</p>
+    <p>The concerned agency has noted your complaint.</p>
+    <p class="highlight">🗓️ Expected Completion Date: <span id="dueDate"></span></p>
+
+    <button class="back-btn" onclick="feedback()">Feedback</button>
+  </div>
+
+  <script>
+    // Set due date = 7 days from today
+    function setDueDate() {
+      const today = new Date();
+      const due = new Date(today);
+      due.setDate(today.getDate() + 7);
+
+      const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+      document.getElementById("dueDate").innerText = due.toLocaleDateString("en-US", options);
+    }
+    setDueDate();
+
+    // Feedback page
+    function feedback() {
+      window.location.href = "index.html"; // replace with your main page
+    }
+  </script>
+</body>
+</html>
