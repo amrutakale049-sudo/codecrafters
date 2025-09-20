@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Register — Sanitation Report</title>
+<style>
+  :root{
+    --blue:#0d6efd; --navy:#0749a7; --muted:#6c757d; --card:#ffffff; --radius:12px;
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial;
+  }
+  html,body{ height:100%; margin:0; background: var(--blue); color:#fff; }
+  .centered{ min-height:100%; display:flex; align-items:center; justify-content:center; padding:28px; }
+  .card{ width:100%; max-width:560px; background:var(--card); border-radius:var(--radius);
+         box-shadow: 0 8px 30px rgba(7,40,84,0.08); padding:28px; color:#0b2640; }
+  header h1{ margin:0 0 6px 0; font-size:20px; color:var(--navy); }
+  header p{ margin:0 0 18px 0; color:var(--muted); font-size:14px; }
+  form .field{ display:flex; flex-direction:column; gap:8px; margin-bottom:12px; }
+  label{ font-size:13px; color:#16324a; }
+  input[type="text"], input[type="email"], input[type="password"], textarea{ padding:10px 12px; border-radius:8px; border:1px solid rgba(7,40,84,0.08); font-size:15px; outline:none; background:#fbfdff; }
+  textarea{ min-height:80px; resize:vertical; }
+  input:focus, textarea:focus{ border-color:var(--blue); box-shadow:0 0 0 4px rgba(13,110,253,0.06); }
+  .row { display:flex; gap:12px; align-items:center; }
+  .small{ font-size:13px; color:var(--muted); }
+  .btn{ display:inline-flex; align-items:center; gap:8px; padding:10px 14px; border-radius:10px; border:none; cursor:pointer; font-weight:600; font-size:15px; }
+  .btn-primary{ background: linear-gradient(180deg,var(--blue),var(--navy)); color:white; box-shadow:0 6px 18px rgba(13,110,253,0.12); }
+  .btn-ghost{ background:transparent; border:1px solid rgba(7,40,84,0.08); color:var(--navy); }
+  .google-btn{ width:100%; display:inline-flex; justify-content:center; padding:10px 12px; gap:10px; border-radius:10px; border:1px solid rgba(7,40,84,0.08); cursor:pointer; background:#fff; font-weight:600; color:#0b2640; margin-bottom:12px; }
+  .helper{ font-size:13px; color:var(--muted); margin-top:8px; }
+  .error{ color:#b00020; font-size:13px; }
+  @media (max-width:600px){ .card{ padding:18px; } .row{ flex-direction:column; align-items:stretch; } }
+</style>
+</head>
+<body>
+<div class="centered">
+  <main class="card" role="main" aria-labelledby="title">
+    <header>
+      <h1 id="title">Citizen Sanitation — Register</h1>
+      <p>Create your account to report & track sanitation issues.</p>
+    </header>
+
+    <button id="googleBtn" class="google-btn">Register with Google</button>
+
+    <form id="regForm" novalidate>
+      <div class="field">
+        <label for="fullname">Full name</label>
+        <input id="fullname" name="fullname" type="text" placeholder="Your full name" required />
+        <div id="fErr" class="error"></div>
+      </div>
+
+      <div class="row">
+        <div style="flex:1;">
+          <div class="field">
+            <label for="contact">Contact no.</label>
+            <input id="contact" name="contact" type="text" placeholder="e.g. 9876543210" required />
+            <div id="cErr" class="error"></div>
+          </div>
+        </div>
+        <div style="flex:1;">
+          <div class="field">
+            <label for="email">Email address</label>
+            <input id="email" name="email" type="email" placeholder="you@example.com" required />
+            <div id="eErr" class="error"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div style="flex:1;">
+          <div class="field">
+            <label for="password">Password</label>
+            <div style="display:flex; gap:8px; align-items:center;">
+              <input id="password" name="password" type="text" placeholder="Click Generate to create a password" readonly style="flex:1;" />
+              <button type="button" id="genBtn" class="btn btn-ghost" title="Generate password">Generate</button>
+            </div>
+            <div id="pErr" class="error"></div>
+          </div>
+        </div>
+        <div style="width:130px; display:flex; align-items:flex-end;">
+          <button id="copyBtn" type="button" class="btn">Copy</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="address">Address</label>
+        <textarea id="address" name="address" placeholder="Your address / locality" required></textarea>
+        <div id="aErr" class="error"></div>
+      </div>
+
+      <div class="row" style="justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <label class="small"><input type="checkbox" id="terms" /> I agree to Terms & Privacy</label>
+      </div>
+
+      <div class="field">
+        <button id="submitBtn" class="btn btn-primary" type="submit">Create account</button>
+      </div>
+
+      <div class="helper">Already have an account? <a href="login.html">Sign in</a></div>
+    </form>
+  </main>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js";
+import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
+
+// --- Firebase config ---
+const firebaseConfig = {
+  apiKey: "AIzaSyDtOiTmU_P1amqlhwRnNkTBmh3eiqlSIZE",
+  authDomain: "wastemanagement-3e0c7.firebaseapp.com",
+  projectId: "wastemanagement-3e0c7",
+  storageBucket: "wastemanagement-3e0c7.appspot.com",
+  messagingSenderId: "1089139332302",
+  appId: "1:1089139332302:web:c77aded8ee07179617ac9f",
+  measurementId: "G-YN6S3P8T2R"
+};
+
+// --- Initialize Firebase ---
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+// --- DOM Elements ---
+const form = document.getElementById('regForm');
+const full = document.getElementById('fullname');
+const contact = document.getElementById('contact');
+const email = document.getElementById('email');
+const password = document.getElementById('password');
+const address = document.getElementById('address');
+const genBtn = document.getElementById('genBtn');
+const copyBtn = document.getElementById('copyBtn');
+const googleBtn = document.getElementById('googleBtn');
+
+const fErr = document.getElementById('fErr');
+const cErr = document.getElementById('cErr');
+const eErr = document.getElementById('eErr');
+const pErr = document.getElementById('pErr');
+const aErr = document.getElementById('aErr');
+
+function clearErrors(){
+  fErr.textContent=''; cErr.textContent=''; eErr.textContent=''; pErr.textContent=''; aErr.textContent='';
+}
+function validEmail(v){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); }
+function validContact(v){ return /^\d{10}$/.test(v); }
+function generatePassword(len=12){
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%&*()-_=+";
+  let out = "";
+  for(let i=0;i<len;i++) out += chars.charAt(Math.floor(Math.random()*chars.length));
+  return out;
+}
+
+genBtn.addEventListener('click', ()=>{ password.value = generatePassword(12); });
+copyBtn.addEventListener('click', ()=>{ 
+  if(!password.value){ alert('No password to copy.'); return; }
+  navigator.clipboard.writeText(password.value).then(()=> alert('Password copied')); 
+});
+
+async function saveToFirestore(uid, data){
+  try{
+    await setDoc(doc(db, 'users', uid), data);
+  } catch(e){
+    console.error("Firestore save error:", e);
+  }
+}
+
+// --- Form Submit ---
+form.addEventListener('submit', async function(ev){
+  ev.preventDefault();
+  clearErrors();
+  let ok=true;
+  const fullname = full.value.trim();
+  const contactVal = contact.value.trim();
+  const emailVal = email.value.trim();
+  const pwd = password.value;
+  const addr = address.value.trim();
+
+  if(fullname.length<2){ fErr.textContent='Enter full name'; ok=false; }
+  if(!validContact(contactVal)){ cErr.textContent='Enter 10-digit contact'; ok=false; }
+  if(!validEmail(emailVal)){ eErr.textContent='Invalid email'; ok=false; }
+  if(pwd.length<8){ pErr.textContent='Generate a password'; ok=false; }
+  if(addr.length<5){ aErr.textContent='Enter address'; ok=false; }
+  if(!ok) return;
+
+  try{
+    // Create user in Firebase Auth
+    const userCredential = await createUserWithEmailAndPassword(auth, emailVal, pwd);
+    const uid = userCredential.user.uid;
+
+    // Save user to Firestore
+    await saveToFirestore(uid, {
+      fullname, contact: contactVal, email: emailVal, address: addr, registeredAt: new Date().toISOString()
+    });
+
+    // Save to session storage
+    sessionStorage.setItem('sanitation_user', JSON.stringify({ uid, fullname, email: emailVal }));
+
+    window.location.href = 'problem.html';
+  } catch(err){
+    console.error(err);
+    alert('Error: ' + err.message);
+  }
+});
+
+// --- Google Signup ---
+googleBtn.addEventListener('click', async ()=>{
+  const provider = new GoogleAuthProvider();
+  try{
+    const result = await signInWithPopup(auth, provider);
+    const user = result.user;
+    const uid = user.uid;
+
+    await saveToFirestore(uid, {
+      fullname: user.displayName || 'Google User',
+      contact: '',
+      email: user.email,
+      address: '',
+      provider: 'google',
+      registeredAt: new Date().toISOString()
+    });
+
+    sessionStorage.setItem('sanitation_user', JSON.stringify({ uid, fullname: user.displayName, email: user.email }));
+    window.location.href = 'problem.html';
+  } catch(err){
+    console.error(err);
+    alert('Google signup failed: '+err.message);
+  }
+});
+</script>
+</body>
+</html>
+
