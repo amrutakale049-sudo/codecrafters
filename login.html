@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login — Sanitation Report</title>
+<style>
+:root{
+  --blue:#0d6efd; --navy:#0749a7; --muted:#6c757d; --card:#ffffff; --radius:12px;
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial;
+}
+html,body{ height:100%; margin:0; background: var(--blue); color:#fff; }
+.centered{ min-height:100%; display:flex; align-items:center; justify-content:center; padding:32px; }
+.card{ width:100%; max-width:480px; background:var(--card); border-radius:var(--radius); box-shadow:0 8px 30px rgba(7,40,84,0.08); padding:28px; color:#0b2640; }
+header h1{ margin:0 0 6px 0; font-size:20px; color:var(--navy); }
+header p{ margin:0 0 18px 0; color:var(--muted); font-size:14px; }
+form .field{ display:flex; flex-direction:column; gap:8px; margin-bottom:14px; }
+label{ font-size:13px; color:#16324a; }
+input[type="text"], input[type="email"], input[type="password"]{ padding:10px 12px; border-radius:8px; border:1px solid rgba(7,40,84,0.08); font-size:15px; outline:none; background:#fbfdff; }
+input:focus{ border-color:var(--blue); box-shadow:0 0 0 4px rgba(13,110,253,0.06); }
+.actions{ display:flex; gap:10px; justify-content:space-between; margin-top:6px; }
+.btn{ display:inline-flex; align-items:center; gap:8px; padding:10px 14px; border-radius:10px; border:none; cursor:pointer; font-weight:600; font-size:15px; }
+.btn-primary{ background: linear-gradient(180deg,var(--blue),var(--navy)); color:white; box-shadow:0 6px 18px rgba(13,110,253,0.12); }
+.google-btn{ width:100%; display:inline-flex; justify-content:center; padding:10px 12px; gap:10px; border-radius:10px; border:1px solid rgba(7,40,84,0.08); cursor:pointer; background:#fff; font-weight:600; color:#0b2640; margin-bottom:12px; }
+.error{ color:#b00020; font-size:13px; }
+.helper{ font-size:13px; color:var(--muted); margin-top:10px; }
+@media(max-width:520px){ .card{ padding:20px; border-radius:10px; } }
+</style>
+</head>
+<body>
+<div class="centered">
+  <main class="card">
+    <header>
+      <h1>Citizen Sanitation — Sign in</h1>
+      <p>Report sanitation issues quickly. Use your account or sign in with Google.</p>
+    </header>
+
+    <button id="googleBtn" class="google-btn">Sign in with Google</button>
+
+    <form id="loginForm">
+      <div class="field">
+        <label for="email">Email address</label>
+        <input id="email" type="email" required placeholder="you@example.com" />
+        <div id="eErr" class="error"></div>
+      </div>
+      <div class="field">
+        <label for="password">Password</label>
+        <input id="password" type="password" required placeholder="Enter your password" />
+        <div id="pErr" class="error"></div>
+      </div>
+      <div class="field">
+        <button type="submit" class="btn btn-primary">Sign in</button>
+      </div>
+      <div class="helper">New user? <a href="register.html">Create an account</a></div>
+    </form>
+  </main>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js";
+import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
+
+// --- Firebase Config ---
+const firebaseConfig = {
+  apiKey: "AIzaSyDtOiTmU_P1amqlhwRnNkTBmh3eiqlSIZE",
+  authDomain: "wastemanagement-3e0c7.firebaseapp.com",
+  projectId: "wastemanagement-3e0c7",
+  storageBucket: "wastemanagement-3e0c7.appspot.com",
+  messagingSenderId: "1089139332302",
+  appId: "1:1089139332302:web:c77aded8ee07179617ac9f",
+  measurementId: "G-YN6S3P8T2R"
+};
+
+// --- Initialize Firebase ---
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+// --- DOM Elements ---
+const form = document.getElementById('loginForm');
+const emailInput = document.getElementById('email');
+const passwordInput = document.getElementById('password');
+const eErr = document.getElementById('eErr');
+const pErr = document.getElementById('pErr');
+const googleBtn = document.getElementById('googleBtn');
+
+function clearErrors(){ eErr.textContent=''; pErr.textContent=''; }
+
+// --- Login Form ---
+form.addEventListener('submit', async (ev)=>{
+  ev.preventDefault();
+  clearErrors();
+  const email = emailInput.value.trim();
+  const pwd = passwordInput.value;
+
+  try {
+    const userCredential = await signInWithEmailAndPassword(auth, email, pwd);
+    const uid = userCredential.user.uid;
+
+    // Fetch extra user info from Firestore
+    const docRef = doc(db, 'users', uid);
+    const docSnap = await getDoc(docRef);
+    const userData = docSnap.exists() ? docSnap.data() : {};
+
+    sessionStorage.setItem('sanitation_user', JSON.stringify({ uid, email, ...userData }));
+    window.location.href = 'problem.html';
+  } catch(err) {
+    if(err.code === 'auth/user-not-found'){ eErr.textContent='User not found'; }
+    else if(err.code === 'auth/wrong-password'){ pErr.textContent='Incorrect password'; }
+    else{ alert('Login failed: '+err.message); console.error(err); }
+  }
+});
+
+// --- Google Sign-in ---
+googleBtn.addEventListener('click', async ()=>{
+  const provider = new GoogleAuthProvider();
+  try {
+    const result = await signInWithPopup(auth, provider);
+    const user = result.user;
+    const uid = user.uid;
+
+    // Fetch extra user info from Firestore (if exists)
+    const docRef = doc(db, 'users', uid);
+    const docSnap = await getDoc(docRef);
+    let userData = {};
+    if(!docSnap.exists()){ 
+      // save new Google user to Firestore
+      userData = { fullname: user.displayName || 'Google User', email: user.email, provider:'google', registeredAt: new Date().toISOString() };
+      await setDoc(doc(db, 'users', uid), userData);
+    } else { userData = docSnap.data(); }
+
+    sessionStorage.setItem('sanitation_user', JSON.stringify({ uid, email: user.email, ...userData }));
+    window.location.href = 'problem.html';
+  } catch(err){ alert('Google sign-in failed: '+err.message); console.error(err); }
+});
+</script>
+</body>
+</html>
